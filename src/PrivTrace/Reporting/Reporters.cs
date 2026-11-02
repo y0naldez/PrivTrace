@@ -13,7 +13,7 @@ namespace PrivTrace.Reporting
         public static void PrintBanner()
         {
             Console.WriteLine("=================================================");
-            Console.WriteLine("                PrivTrace v1.0.0");
+            Console.WriteLine("                PrivTrace v1.1.0");
             Console.WriteLine("       Windows Privilege Escalation Analyzer");
             Console.WriteLine("=================================================");
         }
@@ -155,7 +155,7 @@ namespace PrivTrace.Reporting
 
         private static HashSet<string> PrintServiceFindingGroups(IEnumerable<WindowsService> services, IEnumerable<Finding> findings)
         {
-            HashSet<string> grouped = new HashSet<string>(StringComparer.OrdinalIgnoreCase); List<Finding> candidates = (findings ?? Enumerable.Empty<Finding>()).Where(f => (String.Equals(f.RuleId, "PT-013", StringComparison.OrdinalIgnoreCase) || String.Equals(f.RuleId, "PT-016", StringComparison.OrdinalIgnoreCase)) && !String.IsNullOrWhiteSpace(f.ServiceName) && IsActionable(f)).ToList();
+            HashSet<string> grouped = new HashSet<string>(StringComparer.OrdinalIgnoreCase); List<Finding> candidates = (findings ?? Enumerable.Empty<Finding>()).Where(f => (String.Equals(f.RuleId, "PT-013", StringComparison.OrdinalIgnoreCase) || String.Equals(f.RuleId, "PT-014", StringComparison.OrdinalIgnoreCase) || String.Equals(f.RuleId, "PT-016", StringComparison.OrdinalIgnoreCase)) && !String.IsNullOrWhiteSpace(f.ServiceName) && IsActionable(f)).ToList();
             foreach (IGrouping<string, Finding> group in candidates.GroupBy(f => f.ServiceName, StringComparer.OrdinalIgnoreCase).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
             {
                 WindowsService service = (services ?? Enumerable.Empty<WindowsService>()).FirstOrDefault(s => String.Equals(s.Name, group.Key, StringComparison.OrdinalIgnoreCase));

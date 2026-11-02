@@ -131,7 +131,10 @@ namespace PrivTrace.Security
         {
             if (String.IsNullOrWhiteSpace(principal)) return false;
             string p = principal.Replace(" ", String.Empty).ToUpperInvariant();
-            return p == "SYSTEM" || p == "LOCALSYSTEM" || p == "NTAUTHORITY\\SYSTEM" || p.EndsWith("\\ADMINISTRATOR", StringComparison.Ordinal) || p.EndsWith("\\ADMINISTRATORS", StringComparison.Ordinal);
+            return p == "SYSTEM" || p == "LOCALSYSTEM" || p == "NTAUTHORITY\\SYSTEM" ||
+                p == "LOCALSERVICE" || p == "NTAUTHORITY\\LOCALSERVICE" ||
+                p == "NETWORKSERVICE" || p == "NTAUTHORITY\\NETWORKSERVICE" ||
+                p.EndsWith("\\ADMINISTRATOR", StringComparison.Ordinal) || p.EndsWith("\\ADMINISTRATORS", StringComparison.Ordinal);
         }
     }
 

@@ -48,7 +48,7 @@ namespace PrivTrace.Core
         public AnalysisResult Analyze(AnalysisContext context, IList<RuleDefinition> rules)
         {
             if (context.Software == null || context.Software.Count == 0) { FileIdentityCollector.Enrich(context, false); new SoftwareDiscoveryEngine().Discover(context, new SoftwareProfileCatalog().LoadEmbedded(), false); }
-            AnalysisResult result = new AnalysisResult { Version = "1.0.0", SchemaVersion = "1.6", GeneratedUtc = DateTime.UtcNow, RulesEvaluated = rules.Count, Context = context };
+            AnalysisResult result = new AnalysisResult { Version = "1.1.0", SchemaVersion = "1.6", GeneratedUtc = DateTime.UtcNow, RulesEvaluated = rules.Count, Context = context };
             result.Findings.AddRange(engine.Evaluate(rules, context));
             result.CorrelationTraces.AddRange(AdvancedCorrelation.Correlate(context, result.Findings));
             AdvancedCorrelation.CorrelateSoftware(context, result.Findings);

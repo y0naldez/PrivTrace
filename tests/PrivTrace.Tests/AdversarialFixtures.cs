@@ -123,7 +123,7 @@ namespace PrivTrace.Tests
             AddPrivilege(c, "SeChangeNotifyPrivilege", TokenPrivilegeState.Enabled);
             c.Token.Groups.Add(new WindowsGroup { Sid = "S-1-5-32-545", Name = "Users", Enabled = true });
             for (int i = 0; i < 100; i++) c.Processes.Add(new WindowsProcess { ProcessId = 1000 + i, Name = "safe" + i, ImagePath = @"C:\Windows\System32\safe.exe", OwnerAccount = @"LAB\operator", IntegrityLevel = "Medium", AccessStatus = "ACCESSIBLE" });
-            for (int i = 0; i < 50; i++) { WindowsService s = Service("SafeService" + i, TriState.No, "Automatic", "Stopped"); s.Account = @"NT AUTHORITY\LocalService"; c.Services.Add(s); }
+            for (int i = 0; i < 50; i++) { WindowsService s = Service("SafeService" + i, TriState.No, "Automatic", "Stopped"); s.Account = @"NT AUTHORITY\LocalService"; s.RegistryEvidence.Add(RegistryEvidence("Registry64", TriState.No, TriState.No)); c.Services.Add(s); }
             for (int i = 0; i < 30; i++) { ScheduledTaskInfo t = Task(true, TriState.No, TriState.No); t.Name = "SafeTask" + i; t.Path = @"\Safe\Task" + i; t.Principal = @"LAB\operator"; t.PrincipalIsHigher = TriState.No; c.Tasks.Add(t); }
             WindowsService finding = Service("OnlyConcreteFinding", TriState.Yes, "Automatic", "Stopped"); finding.RegistryEvidence.Add(RegistryEvidence("Registry64", TriState.No, TriState.No)); c.Services.Add(finding);
         }

@@ -20,15 +20,15 @@ Download the latest x64 or x86 executable from [GitHub Releases](https://github.
 
 - Use **x64** on most modern Windows systems.
 - Use **x86** only when a 32-bit executable is required.
-- Compare the downloaded file against `PrivTrace-v1.0.0-SHA256.txt` from the same release.
+- Compare the downloaded file against `PrivTrace-v1.1.0-SHA256.txt` from the same release.
 
 PrivTrace is distributed as a single executable. No installation or third-party package is required.
 
 Verify a downloaded executable from the directory containing the release files:
 
 ```powershell
-Get-FileHash .\PrivTrace-v1.0.0-win-x64.exe -Algorithm SHA256
-Get-Content .\PrivTrace-v1.0.0-SHA256.txt
+Get-FileHash .\PrivTrace-v1.1.0-win-x64.exe -Algorithm SHA256
+Get-Content .\PrivTrace-v1.1.0-SHA256.txt
 ```
 
 The computed hash must exactly match the line for the selected architecture.

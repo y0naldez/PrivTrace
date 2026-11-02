@@ -11,7 +11,7 @@
 - Task triggers are collected as COM type/string summaries; the engine requires enabled registration but does not prove that a future trigger will fire.
 - Path parsing covers common Windows executable/script extensions and quoted/unquoted forms. Nonstandard launchers and application-specific parsing can remain `UNKNOWN`.
 - Live collector success depends on readable local objects. An empty or inaccessible enumeration is not evidence that the host is safe.
-- Service registry enumeration is intentionally directed: only keys for services already returned by SCM and their immediate `Parameters` subkeys are inspected. It is not a general registry auditing engine.
+- Service registry inspection is normally directed at services returned by SCM. When SCM enumeration is denied, PrivTrace enumerates top-level `HKLM\SYSTEM\CurrentControlSet\Services` entries, filters Win32 service types, and retains only names confirmed through directed `OpenService` probes. This fallback is reported as `PARTIAL`; it is not treated as an authoritative SCM inventory or a general registry auditing engine.
 - Registry DACL results model the current token and object-specific rights. SACL/mandatory labels, protected-service policy, runtime impersonation, and later configuration validation can still constrain an operation.
 - A `ServiceDll` value creates a `CONFIGURED` relationship only. PrivTrace does not enumerate process modules and never claims the DLL is loaded, will load automatically, or can be triggered by the current user.
 - PT-027 restricts confirmation to an existing directly writable DLL for a privileged shared-process service. Missing-path creation and ACL-control replacement paths remain conditional.

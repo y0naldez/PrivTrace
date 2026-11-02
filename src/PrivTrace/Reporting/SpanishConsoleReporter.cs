@@ -71,7 +71,7 @@ namespace PrivTrace.Reporting
         {
             HashSet<string> grouped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<Finding> candidates = (findings ?? Enumerable.Empty<Finding>()).Where(f =>
-                (String.Equals(f.RuleId, "PT-013", StringComparison.OrdinalIgnoreCase) || String.Equals(f.RuleId, "PT-016", StringComparison.OrdinalIgnoreCase)) &&
+                (String.Equals(f.RuleId, "PT-013", StringComparison.OrdinalIgnoreCase) || String.Equals(f.RuleId, "PT-014", StringComparison.OrdinalIgnoreCase) || String.Equals(f.RuleId, "PT-016", StringComparison.OrdinalIgnoreCase)) &&
                 !String.IsNullOrWhiteSpace(f.ServiceName) && ConsoleReporter.IsActionable(f)).ToList();
             foreach (IGrouping<string, Finding> group in candidates.GroupBy(f => f.ServiceName, StringComparer.OrdinalIgnoreCase).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
             {
@@ -83,6 +83,7 @@ namespace PrivTrace.Reporting
                 Console.WriteLine("    Ejecutable                : " + (service == null ? "DESCONOCIDO" : service.ExecutablePath ?? service.BinaryPath ?? "DESCONOCIDO"));
                 Console.WriteLine("    Puede iniciar el servicio? : " + TriStateText(service == null ? TriState.Unknown : service.CanStart));
                 Console.WriteLine("    Puede detener el servicio? : " + TriStateText(service == null ? TriState.Unknown : service.CanStop));
+                Console.WriteLine("    Puede cambiar configuracion? : " + OperationAnswer(group, "SERVICE_CHANGE_CONFIG", service == null ? TriState.Unknown : service.CanChangeConfig));
                 Console.WriteLine("    Puede escribir el binario? : " + OperationAnswer(group, "FILE_WRITE_DATA", service == null || service.ExecutablePermission == null ? TriState.Unknown : service.ExecutablePermission.CanWrite));
                 Console.WriteLine("    Puede reemplazarlo?        : " + ReplacementAnswer(group, service));
                 foreach (Finding finding in group.OrderBy(f => f.RuleId, StringComparer.OrdinalIgnoreCase))
@@ -223,7 +224,7 @@ namespace PrivTrace.Reporting
             Console.WriteLine("  --help                    Mostrar esta ayuda");
         }
 
-        private static void PrintBanner() { Separator(); Console.WriteLine("                PrivTrace v1.0.0"); Console.WriteLine("   Analizador de escalada de privilegios en Windows"); Separator(); }
+        private static void PrintBanner() { Separator(); Console.WriteLine("                PrivTrace v1.1.0"); Console.WriteLine("   Analizador de escalada de privilegios en Windows"); Separator(); }
         private static void Separator() { Console.WriteLine("================================================="); }
         private static string CountText(int count, string singular, string plural) { return count + " " + (count == 1 ? singular : plural); }
         private static bool Observed(string value) { return String.Equals(value, "OBSERVED", StringComparison.OrdinalIgnoreCase); }
@@ -236,7 +237,7 @@ namespace PrivTrace.Reporting
         private static string ConfidenceText(Confidence value) { return value == Confidence.High ? "ALTA" : value == Confidence.Medium ? "MEDIA" : value == Confidence.Low ? "BAJA" : "DESCONOCIDA"; }
         private static string SeverityText(Severity value) { return value == Severity.Critical ? "CRITICA" : value == Severity.High ? "ALTA" : value == Severity.Medium ? "MEDIA" : value == Severity.Low ? "BAJA" : "INFORMATIVA"; }
         private static string RuntimeText(string value) { return String.Equals(value, "UNKNOWN", StringComparison.OrdinalIgnoreCase) || String.IsNullOrWhiteSpace(value) ? "REVISAR MANUALMENTE (no evaluada)" : value; }
-        private static string OperationText(string value) { return String.Equals(value, "FILE_WRITE_DATA", StringComparison.OrdinalIgnoreCase) ? "escritura directa del contenido del ejecutable" : String.Equals(value, "FILE_REPLACEMENT", StringComparison.OrdinalIgnoreCase) ? "reemplazo del ejecutable" : String.Equals(value, "FILE_ADD_FILE", StringComparison.OrdinalIgnoreCase) ? "creacion de archivos en el directorio" : value; }
+        private static string OperationText(string value) { return String.Equals(value, "FILE_WRITE_DATA", StringComparison.OrdinalIgnoreCase) ? "escritura directa del contenido del ejecutable" : String.Equals(value, "FILE_REPLACEMENT", StringComparison.OrdinalIgnoreCase) ? "reemplazo del ejecutable" : String.Equals(value, "FILE_ADD_FILE", StringComparison.OrdinalIgnoreCase) ? "creacion de archivos en el directorio" : String.Equals(value, "SERVICE_CHANGE_CONFIG", StringComparison.OrdinalIgnoreCase) ? "cambio de configuracion del servicio" : value; }
 
         private static string RuleName(string id, string fallback)
         {

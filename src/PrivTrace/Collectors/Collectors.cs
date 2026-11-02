@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Security.AccessControl;
@@ -268,6 +269,7 @@ namespace PrivTrace.Collectors
 
     public sealed class ServiceCollector
     {
+        private const string ServicesRegistryPath = @"SYSTEM\CurrentControlSet\Services";
         private readonly AccessEvaluator access = new AccessEvaluator();
         private bool objectReadFailure;
         public ServiceCollector() { Errors = new List<string>(); Diagnostics = new List<CollectorDiagnostic>(); CollectionState = "UNKNOWN"; }
@@ -278,11 +280,12 @@ namespace PrivTrace.Collectors
         {
             List<WindowsService> result = new List<WindowsService>();
             objectReadFailure = false;
-            IntPtr manager = NativeMethods.OpenSCManager(null, null, NativeMethods.SC_MANAGER_ENUMERATE_SERVICE);
+            IntPtr manager = NativeMethods.OpenSCManager(null, null, NativeMethods.SC_MANAGER_CONNECT | NativeMethods.SC_MANAGER_ENUMERATE_SERVICE);
             if (manager == IntPtr.Zero)
             {
                 int error = Marshal.GetLastWin32Error(); CollectionState = CollectorOutcomeClassifier.ServiceState(false, error, false, 0, 0, 0);
-                AddDiagnostic("CONNECT", "OpenSCManager", null, "SC_MANAGER_ENUMERATE_SERVICE (0x0004)", error, error == 5 ? "GLOBAL_ACCESS_DENIED" : "API_ERROR", "Unable to open the Service Control Manager for enumeration.");
+                AddDiagnostic("CONNECT", "OpenSCManager", null, "SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE (0x0005)", error, error == 5 ? "GLOBAL_ACCESS_DENIED" : "API_ERROR", "Unable to open the Service Control Manager for enumeration.");
+                if (error == 5 && CollectFromRegistry(result)) CollectionState = "PARTIAL";
                 return result;
             }
             try
@@ -295,6 +298,7 @@ namespace PrivTrace.Collectors
                 {
                     CollectionState = CollectorOutcomeClassifier.ServiceState(true, 0, false, sizeError, 0, 0);
                     AddDiagnostic("ENUMERATE", "EnumServicesStatusEx", null, "SC_MANAGER_ENUMERATE_SERVICE", sizeError, sizeError == 5 ? "GLOBAL_ACCESS_DENIED" : "API_ERROR", "Unable to determine the service enumeration buffer size.");
+                    if (sizeError == 5 && CollectFromRegistry(result)) CollectionState = "PARTIAL";
                     return result;
                 }
                 resume = 0;
@@ -312,6 +316,7 @@ namespace PrivTrace.Collectors
                         {
                             CollectionState = CollectorOutcomeClassifier.ServiceState(true, 0, false, error, result.Count, 0);
                             AddDiagnostic("ENUMERATE", "EnumServicesStatusEx", null, "SC_MANAGER_ENUMERATE_SERVICE", error, error == 5 ? "GLOBAL_ACCESS_DENIED" : "API_ERROR", "Service enumeration stopped before completion.");
+                            if (error == 5 && CollectFromRegistry(result)) CollectionState = "PARTIAL";
                             return result;
                         }
                     }
@@ -320,6 +325,119 @@ namespace PrivTrace.Collectors
             }
             finally { NativeMethods.CloseServiceHandle(manager); }
             CollectionState = CollectorOutcomeClassifier.ServiceState(true, 0, true, 0, result.Count, objectReadFailure ? 1 : 0); return result;
+        }
+
+        private bool CollectFromRegistry(List<WindowsService> result)
+        {
+            IntPtr manager = NativeMethods.OpenSCManager(null, null, NativeMethods.SC_MANAGER_CONNECT);
+            if (manager == IntPtr.Zero)
+            {
+                int error = Marshal.GetLastWin32Error();
+                AddDiagnostic("REGISTRY_FALLBACK_CONNECT", "OpenSCManager", null, "SC_MANAGER_CONNECT (0x0001)", error, error == 5 ? "GLOBAL_ACCESS_DENIED" : "API_ERROR", "Registry service names were not queried because directed service handles cannot be opened.");
+                return false;
+            }
+
+            RegistryKey root = null, services = null;
+            int registryCandidates = 0, confirmed = 0, failures = 0;
+            HashSet<string> observed = new HashSet<string>(result.Select(s => s.Name), StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                RegistryView view = Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Default;
+                root = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+                services = root.OpenSubKey(ServicesRegistryPath, false);
+                if (services == null)
+                {
+                    AddDiagnostic("REGISTRY_FALLBACK", "RegistryKey.OpenSubKey", @"HKLM\" + ServicesRegistryPath, "READ", 0, "REGISTRY_UNAVAILABLE", "The services registry key is missing or inaccessible.");
+                    return false;
+                }
+
+                foreach (string name in services.GetSubKeyNames())
+                {
+                    RegistryKey key = null;
+                    try
+                    {
+                        key = services.OpenSubKey(name, false);
+                        if (key == null) { failures++; continue; }
+                        object rawType = key.GetValue("Type", null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+                        uint type;
+                        if (!TryServiceType(rawType, out type) || !IsWin32ServiceType(type)) continue;
+                        registryCandidates++;
+                        if (observed.Contains(name)) continue;
+
+                        NativeMethods.EnumServiceStatusProcess status; int confirmationError;
+                        if (!TryConfirmService(manager, name, type, out status, out confirmationError))
+                        {
+                            if (confirmationError != 1060) failures++;
+                            if (confirmationError != 5 && confirmationError != 1060) AddDiagnostic("REGISTRY_FALLBACK_CONFIRM", "OpenService", name, "directed read/effective-right probes", confirmationError, ErrorClassification(confirmationError, "SERVICE"), "The registry entry could not be confirmed as a live SCM service object.");
+                            continue;
+                        }
+
+                        status.DisplayName = Convert.ToString(key.GetValue("DisplayName", name, RegistryValueOptions.DoNotExpandEnvironmentNames));
+                        result.Add(ReadService(manager, status));
+                        observed.Add(name); confirmed++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failures++;
+                        AddDiagnostic("REGISTRY_FALLBACK_ENTRY", "RegistryKey", name, "READ", 0, "API_ERROR", ex.GetType().Name + ": " + ex.Message);
+                    }
+                    finally { if (key != null) key.Dispose(); }
+                }
+
+                bool recovered = confirmed > 0 || result.Count > 0;
+                Diagnostics.Add(new CollectorDiagnostic { Collector = "Services", Stage = "REGISTRY_FALLBACK", Api = "RegistryKey.GetSubKeyNames+OpenService", ObjectName = @"HKLM\" + ServicesRegistryPath, RequestedAccess = "Registry READ; SC_MANAGER_CONNECT; directed service probes", Classification = recovered ? "FALLBACK_PARTIAL" : "FALLBACK_UNCONFIRMED", Detail = "SCM enumeration was denied. Registry candidates=" + registryCandidates + ", confirmed services=" + confirmed + ", entry failures=" + failures + "." });
+                return recovered;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                AddDiagnostic("REGISTRY_FALLBACK", "RegistryKey", @"HKLM\" + ServicesRegistryPath, "READ", 5, "REGISTRY_ACCESS_DENIED", ex.Message); return false;
+            }
+            catch (Exception ex)
+            {
+                AddDiagnostic("REGISTRY_FALLBACK", "RegistryKey", @"HKLM\" + ServicesRegistryPath, "READ", 0, "API_ERROR", ex.GetType().Name + ": " + ex.Message); return false;
+            }
+            finally
+            {
+                if (services != null) services.Dispose();
+                if (root != null) root.Dispose();
+                NativeMethods.CloseServiceHandle(manager);
+            }
+        }
+
+        internal static bool IsWin32ServiceType(uint type) { return (type & NativeMethods.SERVICE_WIN32) != 0; }
+
+        private static bool TryServiceType(object value, out uint type)
+        {
+            try { if (value == null) { type = 0; return false; } type = Convert.ToUInt32(value); return true; }
+            catch { type = 0; return false; }
+        }
+
+        private static bool TryConfirmService(IntPtr manager, string name, uint registryType, out NativeMethods.EnumServiceStatusProcess result, out int lastError)
+        {
+            result = new NativeMethods.EnumServiceStatusProcess { ServiceName = name, Status = new NativeMethods.ServiceStatusProcess { ServiceType = registryType } };
+            lastError = 0;
+            uint[] probes = { NativeMethods.SERVICE_QUERY_STATUS, NativeMethods.SERVICE_QUERY_CONFIG, NativeMethods.READ_CONTROL, NativeMethods.SERVICE_CHANGE_CONFIG, NativeMethods.SERVICE_START, NativeMethods.SERVICE_STOP };
+            foreach (uint probe in probes)
+            {
+                IntPtr service = NativeMethods.OpenService(manager, name, probe);
+                if (service == IntPtr.Zero)
+                {
+                    lastError = Marshal.GetLastWin32Error();
+                    if (lastError == 1060) return false;
+                    continue;
+                }
+                try
+                {
+                    if (probe == NativeMethods.SERVICE_QUERY_STATUS)
+                    {
+                        NativeMethods.ServiceStatusProcess status; int needed;
+                        if (NativeMethods.QueryServiceStatusEx(service, NativeMethods.SC_ENUM_PROCESS_INFO, out status, Marshal.SizeOf(typeof(NativeMethods.ServiceStatusProcess)), out needed)) result.Status = status;
+                    }
+                    return true;
+                }
+                finally { NativeMethods.CloseServiceHandle(service); }
+            }
+            return false;
         }
 
         private void ReadEnumerationBuffer(IntPtr manager, IntPtr buffer, int returned, List<WindowsService> result)
@@ -444,7 +562,7 @@ namespace PrivTrace.Collectors
 
         private static SecurityPermission UnknownPermission(string target, string type, string detail) { return new SecurityPermission { Target = target, ObjectType = type, CanWrite = TriState.Unknown, CanCreate = TriState.Unknown, CanDelete = TriState.Unknown, CanChangePermissions = TriState.Unknown, Detail = detail }; }
 
-        private static string StateName(uint value) { return value == 4 ? "Running" : value == 1 ? "Stopped" : value.ToString(); }
+        private static string StateName(uint value) { return value == 4 ? "Running" : value == 1 ? "Stopped" : value == 0 ? "Unknown" : value.ToString(); }
         private static string StartName(uint value) { return value == 2 ? "Automatic" : value == 3 ? "Manual" : value == 4 ? "Disabled" : value.ToString(); }
     }
 

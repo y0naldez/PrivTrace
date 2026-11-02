@@ -104,6 +104,7 @@ namespace PrivTrace.Interop
         internal static extern bool EnumServicesStatusEx(IntPtr manager, int infoLevel, uint serviceType, uint serviceState, IntPtr services, int bufferSize, out int bytesNeeded, out int returned, ref int resume, string groupName);
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool QueryServiceConfig(IntPtr service, IntPtr config, int bufferSize, out int bytesNeeded);
         [DllImport("advapi32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool QueryServiceStatus(IntPtr service, out ServiceStatus status);
+        [DllImport("advapi32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool QueryServiceStatusEx(IntPtr service, int infoLevel, out ServiceStatusProcess status, int bufferSize, out int bytesNeeded);
         [DllImport("advapi32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool QueryServiceObjectSecurity(IntPtr service, uint securityInformation, byte[] descriptor, uint bufferSize, out uint bytesNeeded);
     }
 }

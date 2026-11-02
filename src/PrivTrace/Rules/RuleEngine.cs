@@ -304,6 +304,12 @@ namespace PrivTrace.Rules
                 if (match || unknown)
                 {
                     Finding finding = ObjectFinding(rule, service.Name, match, unknown, evidence, "Current user", "Effective file or service-object right", "Configured executable " + (service.ExecutablePath ?? service.BinaryPath), "Service " + service.Name, service.Account);
+                    if (rule.Id == "PT-014")
+                    {
+                        finding.ServiceName = service.Name; finding.ObjectIdentity = service.Name + "|" + (service.ExecutablePath ?? service.BinaryPath ?? "UNKNOWN");
+                        finding.PermissionState = match ? "CONFIRMED_RIGHT" : "UNKNOWN"; finding.ConfigurationState = "CONFIRMED_CONFIGURATION"; finding.ExecutionState = "CONDITIONAL_EXECUTION";
+                        finding.RuntimeProtectionState = String.IsNullOrWhiteSpace(service.RuntimeProtectionState) ? "UNKNOWN" : service.RuntimeProtectionState; finding.VerifiedOperation = "SERVICE_CHANGE_CONFIG";
+                    }
                     BinaryArtifact binary = FindBinary(context, service.ExecutablePath);
                     if (binary != null)
                     {
