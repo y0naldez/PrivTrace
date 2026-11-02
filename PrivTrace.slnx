@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/PrivTrace/PrivTrace.csproj" Id="84b0bd1b-0b97-4b99-9f9e-5d7d54d7e384" />
+  <Project Path="tests/PrivTrace.Tests/PrivTrace.Tests.csproj" Id="da8e394b-a9d4-41bd-b1f8-8ab8b63d3b0c" />
+</Solution>

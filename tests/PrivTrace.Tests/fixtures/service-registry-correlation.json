@@ -1,0 +1,26 @@
+{
+  "Token": { "UserName": "LAB\\operator", "IntegrityLevel": "Medium", "Elevated": 2, "Privileges": [], "Groups": [], "Errors": [] },
+  "System": { "MachineName": "SYNTHETIC", "OsVersion": "Synthetic Windows", "Architecture": "x64", "IsWindows": true },
+  "Services": [
+    {
+      "Name": "WeakRegistrySvc", "State": "Stopped", "ProcessId": 0, "ServiceType": "0x10", "StartType": "Manual", "BinaryPath": "C:\\Vendor\\svc.exe", "ExecutablePath": "C:\\Vendor\\svc.exe", "Account": "LocalSystem", "CanChangeConfig": 2,
+      "RegistryEvidence": [
+        { "View": "Registry64", "ServiceKeyPath": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\WeakRegistrySvc", "ImagePath": "C:\\Vendor\\svc.exe", "ServiceDllExists": 0,
+          "ServiceKeyPermission": { "Target": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\WeakRegistrySvc", "ObjectType": "RegistryKey", "CanWrite": 1, "CanCreate": 2, "CanDelete": 2, "CanChangePermissions": 2, "OwnerSid": "S-1-5-18", "OwnerAccount": "NT AUTHORITY\\SYSTEM", "AccessEntries": [], "Detail": "Synthetic effective KEY_SET_VALUE allow" }, "Errors": [] }
+      ], "Errors": [], "UnquotedCandidates": [], "UnquotedCandidatePermissions": []
+    },
+    {
+      "Name": "WritableDllSvc", "State": "Running", "ProcessId": 712, "ServiceType": "0x20", "StartType": "Automatic", "BinaryPath": "C:\\Windows\\System32\\svchost.exe -k Vendor", "ExecutablePath": "C:\\Windows\\System32\\svchost.exe", "Account": "LocalSystem", "CanChangeConfig": 2,
+      "RegistryEvidence": [
+        { "View": "Registry64", "ServiceKeyPath": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\WritableDllSvc", "ParametersKeyPath": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\WritableDllSvc\\Parameters", "ServiceDll": "%SystemRoot%\\System32\\vendor.dll", "ServiceDllPath": "C:\\Windows\\System32\\vendor.dll", "ServiceDllExists": 1,
+          "ServiceKeyPermission": { "ObjectType": "RegistryKey", "CanWrite": 2, "CanCreate": 2, "CanDelete": 2, "CanChangePermissions": 2, "AccessEntries": [] },
+          "ParametersKeyPermission": { "ObjectType": "RegistryKey", "CanWrite": 2, "CanCreate": 2, "CanDelete": 2, "CanChangePermissions": 2, "AccessEntries": [] },
+          "ServiceDllPermission": { "Target": "C:\\Windows\\System32\\vendor.dll", "ObjectType": "File", "CanWrite": 1, "CanCreate": 2, "CanDelete": 2, "CanChangePermissions": 2, "AccessEntries": [], "Detail": "Synthetic effective write allow" },
+          "ServiceDllDirectoryPermission": { "Target": "C:\\Windows\\System32", "ObjectType": "Directory", "CanWrite": 2, "CanCreate": 2, "CanDelete": 2, "CanChangePermissions": 2, "AccessEntries": [] }, "Errors": [] }
+      ], "Errors": [], "UnquotedCandidates": [], "UnquotedCandidatePermissions": []
+    }
+  ],
+  "Tasks": [],
+  "Processes": [ { "ProcessId": 712, "Name": "svchost.exe", "ImagePath": "C:\\Windows\\System32\\svchost.exe", "ImagePathSource": "Synthetic", "OwnerAccount": "LocalSystem", "IntegrityLevel": "System", "Architecture": "x64", "ParentProcessId": 4, "AccessStatus": "ACCESSIBLE", "ServiceNames": [], "Errors": [] } ],
+  "Binaries": [], "ExecutionRelationships": [], "Timings": [], "Errors": []
+}

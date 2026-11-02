@@ -1,0 +1,23 @@
+# Known limitations
+
+- Privilege rules prove token presence and enabled state only. They do not manufacture tokens, reach authentication endpoints, bypass protection, or prove exploitability.
+- DnsAdmins has no universal well-known SID. PT-011 uses the resolved token-account name and is marked `PARTIALLY_VERIFIED`; domain scoping and localization can produce `UNKNOWN` or false negatives.
+- Task Scheduler COM access varies by task and host policy. Unreadable principals, actions, or descriptors remain `UNKNOWN`.
+- PT-018 currently treats effective `WRITE_DAC` on the registered task descriptor as a relevant weak permission. Task registration may enforce additional checks; no registration attempt is made.
+- Service configuration rights are checked by requesting a read-only handle with the desired access bit. No configuration call is issued.
+- PT-016 reports directory file-creation capability but explicitly does not equate it with replacing an existing executable.
+- Integrity labels, UAC filtering, protected processes/services, application control, driver signing, antivirus, and runtime race conditions can invalidate an otherwise plausible path.
+- Filesystem `AccessCheck` models the current token and DACL, but application-specific share permissions, remote filesystem policy, locks, reparse behavior, and runtime impersonation can differ.
+- Task triggers are collected as COM type/string summaries; the engine requires enabled registration but does not prove that a future trigger will fire.
+- Path parsing covers common Windows executable/script extensions and quoted/unquoted forms. Nonstandard launchers and application-specific parsing can remain `UNKNOWN`.
+- Live collector success depends on readable local objects. An empty or inaccessible enumeration is not evidence that the host is safe.
+- Service registry enumeration is intentionally directed: only keys for services already returned by SCM and their immediate `Parameters` subkeys are inspected. It is not a general registry auditing engine.
+- Registry DACL results model the current token and object-specific rights. SACL/mandatory labels, protected-service policy, runtime impersonation, and later configuration validation can still constrain an operation.
+- A `ServiceDll` value creates a `CONFIGURED` relationship only. PrivTrace does not enumerate process modules and never claims the DLL is loaded, will load automatically, or can be triggered by the current user.
+- PT-027 restricts confirmation to an existing directly writable DLL for a privileged shared-process service. Missing-path creation and ACL-control replacement paths remain conditional.
+- No Active Directory-wide enumeration is implemented.
+- PT-021 reads both policy scopes but does not execute Windows Installer; WDAC/AppLocker and installer restrictions remain external conditions.
+- PT-022 reports Event Log Readers membership only. It deliberately does not search logs or collect possible credentials.
+- PT-023 reports SeTcbPrivilege presence/state only; it does not create or manipulate tokens.
+- PT-024 confirms a running LocalSystem Spooler plus enabled SeImpersonatePrivilege, not a guaranteed PrintSpoofer/SpoolSample result. Build, patches, RPC behavior, and coercion conditions remain material.
+- Synthetic fixtures validate generalized technical conditions and never override Microsoft API semantics.
